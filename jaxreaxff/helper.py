@@ -186,9 +186,9 @@ def set_flattened_force_field(flattened_force_field,param_indices, bounds):
     for i,p in enumerate(param_indices):
         bound = bounds[i]
         if p[0] in bond_param_indices_max:
-            copy_ff[p[0]][p[1]] = bound[1]
+            copy_ff[p[0]] = np.asarray(copy_ff[p[0]]).at[p[1]].set(bound[1])
         if p[0] in bond_param_indices_min:
-            copy_ff[p[0]][p[1]] = bound[0]
+            copy_ff[p[0]] = np.asarray(copy_ff[p[0]]).at[p[1]].set(bound[0])
     return copy_ff
 
 def find_limits(type1, type2, flattened_force_field, cutoff):
@@ -254,11 +254,12 @@ def process_and_cluster_geos(systems,force_field,param_indices,bounds,max_num_cl
     copy_ff = preprocess_force_field(copy_ff, force_field.non_dif_params)
 
     end = time.time()
-    pool = Pool(num_threads)
+    # pool = Pool(num_threads)
+    pool = None
     start = time.time()
     pool_handler_for_inter_list_generation(systems,copy_ff,force_field,pool)
     end = time.time()
-    pool.terminate()
+    # pool.terminate()
 
     print("Multithreaded interaction list generation took {:.2f} secs with {} threads".format(end-start,num_threads))
 
@@ -361,12 +362,14 @@ def process_and_cluster_geos(systems,force_field,param_indices,bounds,max_num_cl
                              list_all_body_4_angles,
                              list_all_angles_and_dist])
 
-def pool_handler_for_inter_list_generation(systems,flattened_force_field,force_field,pool):
+def pool_handler_for_inter_list_generation(systems,flattened_force_field,force_field,pool=None):
     # prepare input
     all_flat_systems = [s.flatten_no_inter_list() for s in systems]
 
     modified_create_inter_lists = partial(create_inter_lists,force_field=force_field,flattened_force_field=flattened_force_field)
-    all_inter_lists = pool.starmap(modified_create_inter_lists, all_flat_systems)
+    # all_inter_lists = pool.starmap(modified_create_inter_lists, all_flat_systems)
+    # Modifying so that we don't use Pool in any way
+    all_inter_lists = starmap_emulator(modified_create_inter_lists, all_flat_systems)
 
     for i,s in enumerate(systems):
         s.distance_matrices = all_inter_lists[i][0]
@@ -391,6 +394,11 @@ def pool_handler_for_inter_list_generation(systems,flattened_force_field,force_f
          s.global_hbond_shift_list,
          s.global_hbond_inter_list_mask,
          s.global_hbond_count] = all_inter_lists[i][5]
+
+# No multiprocessing
+def starmap_emulator(func, args):
+    return [func(*arg) for arg in args]
+
 
 # can be usedfor multi processing
 def create_inter_lists(is_periodic,

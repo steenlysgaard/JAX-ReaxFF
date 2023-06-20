@@ -33,8 +33,8 @@ cuda_version = "cuda{}".format(cuda_version.replace(".",""))
 '''
 
 INSTALL_REQUIRES = [
-  'jax>=0.2.16,<=0.3.1',
-  'jaxlib>=0.1.70,<=0.3.0',
+  'jax>=0.2.16,<=0.4.4',
+  'jaxlib>=0.1.70,<=0.4.4',
   'numba>=0.51.2',
   'numpy>=1.18.0,<1.22.0',
   'scipy>=1.2.1',

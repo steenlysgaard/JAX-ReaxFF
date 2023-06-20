@@ -192,7 +192,7 @@ def replace_pos_with_subs(minim_index_lists, list_all_pos, list_all_pos_sub):
     ctr=0
     for i in range(len(list_all_pos)):
         if len(minim_index_lists[i]) != 0:
-            list_all_pos[i] = jax.ops.index_update(list_all_pos[i], minim_index_lists[i], list_all_pos_sub[ctr])
+            list_all_pos[i] = np.asarray(list_all_pos[i]).at[minim_index_lists[i]].set(list_all_pos_sub[ctr])
             ctr = ctr + 1
 
     return list_all_pos
@@ -368,7 +368,7 @@ def post_process_gradients(grads, batch_size):
 
 def use_selected_parameters(params,param_indices, flattened_force_field):
     for i, ind in enumerate(param_indices):
-        flattened_force_field[ind[0]] = jax.ops.index_update(flattened_force_field[ind[0]], ind[1], params[i])
+        flattened_force_field[ind[0]] = np.asarray(flattened_force_field[ind[0]]).at[ind[1]].set(params[i])
     return flattened_force_field
 
 def loss_w_sel_params(selected_params, param_indices, flattened_force_field, flattened_non_dif_params,
@@ -460,11 +460,11 @@ def loss(flattened_force_field,flattened_non_dif_params,
                                       list_all_body_4_list[i],list_all_body_4_map[i],list_all_body_4_angles[i],
                                       list_all_hbond_list[i],list_all_hbond_mask[i],list_all_angles_and_dist[i])
 
-        all_pots = jax.ops.index_update(all_pots, jax.ops.index[start:end], pots)
+        all_pots = np.asarray(all_pots).at[jax.numpy.index_exp[start:end]].set(pots)
         if charge_items_flag:
-            all_charges = jax.ops.index_update(all_charges, jax.ops.index[start:end, :atom_counts[i]], charges)
+            all_charges = np.asarray(all_charges).at[jax.numpy.index_exp[start:end, :atom_counts[i]]].set(charges)
         if geo_items_flag:
-            all_positions = jax.ops.index_update(all_positions, jax.ops.index[start:end, :atom_counts[i], :], list_all_positions[i])
+            all_positions = np.asarray(all_positions).at[jax.numpy.index_exp[start:end, :atom_counts[i], :]].set(list_all_positions[i])
         if force_items_flag:
             forces = force_func(list_all_positions[i],flattened_force_field,flattened_non_dif_params,
                              list_all_shift_combs[i],list_orth_matrices[i], list_all_type[i],list_all_mask[i],
@@ -476,7 +476,7 @@ def loss(flattened_force_field,flattened_non_dif_params,
                              list_all_hbond_list[i],list_all_hbond_mask[i],list_all_hbond_shift[i],
                              list_bond_rest[i],list_angle_rest[i],list_torsion_rest[i]
                              )
-            all_forces = jax.ops.index_update(all_forces, jax.ops.index[start:end, :atom_counts[i], :], forces)
+            all_forces = np.asarray(all_forces).at[jax.numpy.index_exp[start:end, :atom_counts[i], :]].set(forces)
 
     if energy_items_flag:
         energy_sys_list_of_lists, energy_multip_list_of_lists, energy_all_weights, energy_all_energy_vals = structured_training_data['ENERGY']
